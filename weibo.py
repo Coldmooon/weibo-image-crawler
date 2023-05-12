@@ -10,10 +10,11 @@ headers = {'User_Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
     
 def extract_info_from_link(url):
     # 匹配UID和页面ID的正则表达式
-    pattern = re.compile(r'https://weibo.com/(\d+)/?(\w+)?')
+    pattern = re.compile(r'https?://weibo.com/(\d+)/?(\w+)?')
     
     # 尝试匹配链接中的UID和页面ID
     match = pattern.match(url)
+    print(match)
     if match:
         uid = match.group(1)
         if match.group(2):
