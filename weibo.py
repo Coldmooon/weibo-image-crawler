@@ -81,10 +81,12 @@ def download_image(url, file_path, type, uid):
 #         logger.exception(e)
 
 
-def weibo_image_download(url):
+def weibo_image_download(url, save_folder="images"):
     print("Downloading URL: ", url)
     uid, page_id = extract_info_from_link(url)
     response = weibo_page(page_id)
     urls, pic_ids = get_pics_url(response)
+    if not os.path.isdir(save_folder):
+        os.makedirs(save_folder)
     for url, pic in zip(urls, pic_ids):
-        download_image(url, pic+".jpg", "img", uid)
+        download_image(url, save_folder + "/" + pic+".jpg", "img", uid)
