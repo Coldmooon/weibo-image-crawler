@@ -8,7 +8,7 @@ headers = {'User_Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
  'Cookie': ''}
 
     
-def extract_info_from_link(url):
+def extract_pageid_from_link(url):
     # 匹配UID和页面ID的正则表达式
     pattern = re.compile(r'https?://weibo.com/(\d+)/?(\w+)?')
     
@@ -22,7 +22,7 @@ def extract_info_from_link(url):
         else:
             # 如果页面ID没有在链接中指定，则默认为最后一个字符
             page_id = url[-1]
-        return uid, page_id
+        return page_id
     
     # 如果链接格式不正确，则返回None
     return None
@@ -37,6 +37,12 @@ def get_pics_url(response):
     pic_ids = response['pic_ids']
     pic_urls = [response['pic_infos'][x]['largest']['url']  for x in pic_ids]
     return pic_urls,pic_ids
+
+def get_user_info(response):
+    user = {}
+    user['screen_name'] = response['user']['screen_name']
+    user['uid'] = str(response['user']['id'])
+    return user
 
 def download_image(url, file_path, type, uid):
     try:
@@ -84,10 +90,12 @@ def download_image(url, file_path, type, uid):
 
 def weibo_image_download(url, save_folder="images"):
     print("Downloading URL: ", url)
-    uid, page_id = extract_info_from_link(url)
+    page_id = extract_pageid_from_link(url)
     response = weibo_page(page_id)
-    urls, pic_ids = get_pics_url(response)
+    user_info = get_user_info(response)
+    pic_urls, pic_ids = get_pics_url(response)
+    save_folder = save_folder + "/" + user_info['screen_name'] + "_" + user_info['uid']
     if not os.path.isdir(save_folder):
         os.makedirs(save_folder)
-    for url, pic in zip(urls, pic_ids):
-        download_image(url, save_folder + "/" + pic+".jpg", "img", uid)
+    for pic_url, pic_id in zip(pic_urls, pic_ids):
+        download_image(pic_url, save_folder + "/" + pic_id + ".jpg", "img", user_info['uid'])
