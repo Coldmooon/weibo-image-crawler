@@ -92,10 +92,14 @@ def weibo_image_download(url, save_folder="images"):
     print("Downloading URL: ", url)
     page_id = extract_pageid_from_link(url)
     response = weibo_page(page_id)
-    user_info = get_user_info(response)
     pic_urls, pic_ids = get_pics_url(response)
-    save_folder = save_folder + "/" + user_info['screen_name'] + "_" + user_info['uid']
+    
+    user_info = get_user_info(response)
+    user_folder = user_info['screen_name'] + "_" + user_info['uid']
+    save_folder = save_folder + "/" + user_folder
+
     if not os.path.isdir(save_folder):
         os.makedirs(save_folder)
     for pic_url, pic_id in zip(pic_urls, pic_ids):
-        download_image(pic_url, save_folder + "/" + pic_id + ".jpg", "img", user_info['uid'])
+        img_save_name = save_folder + "/" + pic_id + ".jpg"
+        download_image(pic_url, img_save_name, "img", user_info['uid'])

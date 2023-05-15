@@ -8,12 +8,14 @@ parser.add_argument('-l', '--link', default=None, type=str, metavar='Link',
                     help='A Weibo link to download images. For example, https://weibo.com/3178232834/MFStocIKp or https://weibo.com/3178232834/4899808463031949')
 parser.add_argument('-f', '--file', default=None, type=str, metavar='File',
                     help='A file that contains lines of weibo links.')
+parser.add_argument('-s', '--save', default="images", type=str, metavar='File',
+                    help='Folder to save images.')
 
 def main():
     args = parser.parse_args()
 
     if args.link is not None:
-        wb(args.link)
+        wb(args.link, args.save)
     elif args.file is not None:
         links = []
         with open(args.file, 'r') as f:
@@ -22,7 +24,7 @@ def main():
                 if line:
                     links.append(line)
         for url in links:
-            wb(url)
+            wb(url, args.save)
     else:
         print("Please provide a weibo link.")
 
