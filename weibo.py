@@ -44,7 +44,7 @@ def get_user_info(response):
     user['uid'] = str(response['user']['id'])
     return user
 
-def download_image(url, file_path, type, uid):
+def download_image(url, file_path, uid):
     try:
         file_exist = os.path.isfile(file_path)
         need_download = (not file_exist)
@@ -72,7 +72,6 @@ def download_image(url, file_path, type, uid):
                 break
         if success: 
             if not file_exist:
-                print("file_path: ", file_path)
                 with open(file_path, "wb") as f:
                     f.write(downloaded.content)
 #                     logger.debug("[DEBUG] save " + file_path )
@@ -102,4 +101,4 @@ def weibo_image_download(url, save_folder="images"):
         os.makedirs(save_folder)
     for pic_url, pic_id in zip(pic_urls, pic_ids):
         img_save_name = save_folder + "/" + pic_id + ".jpg"
-        download_image(pic_url, img_save_name, "img", user_info['uid'])
+        download_image(pic_url, img_save_name, user_info['uid'])
