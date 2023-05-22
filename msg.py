@@ -3,6 +3,9 @@ import hashlib
 import json
 from flask import Flask, request
 
+from weibo import weibo_image_download as wb
+import re
+
 # 导入 CallbackSDK 类
 from msgsdk import CallbackSDK
 
@@ -18,17 +21,12 @@ def verify():
     signature = request.args.get("signature")
     timestamp = request.args.get("timestamp")
     nonce = request.args.get("nonce")
-    print("signature: ", signature)
-    print("timestamp: ", timestamp)
-    print("nonce: ", nonce)
     if not call_back_SDK.checkSignature(signature, timestamp, nonce):
-        print("check signature error")
         return "check signature error"
 
     # 首次验证 url 时会有 'echostr' 参数，后续推送消息时不再有 'echostr' 字段
     # 若存在 'echostr' 说明是首次验证，则返回 'echostr' 的内容
     if request.args.get("echostr"):
-        print("echostr")
         return request.args.get("echostr")
 
     # 处理开放平台推送来的消息，首先获取推送来的数据
@@ -41,7 +39,15 @@ def verify():
     str_return = ""
 
     if post_msg_str:
-        print("Text: \n", post_msg_str["text"])
+        text_received = post_msg_str["text"]
+        print("Text: \n", text_received)
+        pattern = re.compile(r'https?://weibo.com/(\d+)/?(\w+)?')
+
+        # 尝试匹配链接中的UID和页面ID
+        match = pattern.match(text_received)
+        if match:
+            print("Matched. Start downloading...")
+            wb(text_received, "test")
 
         # sender_id 为发送回复消息的 uid，即蓝 v 自己
         sender_id = post_msg_str["receiver_id"]
