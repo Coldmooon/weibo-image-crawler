@@ -19,15 +19,9 @@ class CallbackSDK:
     # 验证签名
     # 根据 app_secret, timestamp 和 nonce 生成一个哈希值，与 signature 进行比较
     def checkSignature(self, signature, timestamp, nonce):
-        print("signature: ", signature)
-        print("timestamp: ", timestamp)
-        print("nonce: ", nonce)
         tmpArr = [self.app_secret, timestamp, nonce] # 创建一个列表
-        print("tmpArr: ", tmpArr)
-
         tmpArr.sort() # 对列表进行排序
         tmpStr = hashlib.sha1("".join(tmpArr).encode('utf-8')).hexdigest()
-        print("tmpStr: ", tmpStr)
 
         if tmpStr == signature: # 如果哈希值和签名相同
             return True # 返回 True
@@ -36,16 +30,6 @@ class CallbackSDK:
 
     # 组装返回数据
     # 包括 sender_id, receiver_id, type 和 data
-    def buildReplyMsg(self, receiver_id, sender_id, data, type):
-        msg = {
-            "sender_id": sender_id,
-            "receiver_id": receiver_id,
-            "type": type,
-            # data 字段需要进行 urlencode 编码
-            "data": urllib.parse.quote(json.dumps(data))
-        }
-        return msg
-
     def buildReplyMsg(self, receiver_id, sender_id, data, type):
         msg = {
             "sender_id": sender_id,
