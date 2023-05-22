@@ -29,18 +29,21 @@ def extract_pageid_from_link(url):
 def weibo_page(page_id):
     request_link = "https://weibo.com/ajax/statuses/show?id=" + page_id
     r = requests.get(request_link, headers=headers, verify=False)
+
     return r.json()
 
 def get_pics_url(response):
     # Note: 如果是转发微博，那么会有多个 pic_ids，其中当前微博的 pic_ids 是空，而被转发微博的 pic_ids 正常。
-    pic_ids = response['pic_ids']
     pic_urls = [response['pic_infos'][x]['largest']['url']  for x in pic_ids]
-    return pic_urls,pic_ids
+    pic_ids = response['pic_ids']
+
+    return pic_urls, pic_ids
 
 def get_user_info(response):
     user = {}
     user['screen_name'] = response['user']['screen_name']
     user['uid'] = str(response['user']['id'])
+    
     return user
 
 def download_image(url, file_path, uid):
