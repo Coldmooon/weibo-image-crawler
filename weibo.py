@@ -14,7 +14,6 @@ def extract_pageid_from_link(url):
     
     # 尝试匹配链接中的UID和页面ID
     match = pattern.match(url)
-    print(match)
     if match:
         uid = match.group(1)
         if match.group(2):
