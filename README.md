@@ -18,3 +18,8 @@ python main.py -l https://weibo.com/5573443261/MFWrOyfe5
 ```
 python main.py -f links.txt
 ```
+
+设定图片存储到本地 images 目录下:
+```
+python main.py -f links.txt -s images
+```
