@@ -57,6 +57,10 @@ def get_livephoto_url(response, pic_id):
     livephoto_url = response['pic_infos'][pic_id]['video']
     return livephoto_url
 
+def get_video_url(response):
+
+    return response['page_info']['media_info']['mp4_720p_mp4']
+
 def get_user_info(response):
     user = {}
     user['screen_name'] = response['user']['screen_name']
@@ -83,7 +87,8 @@ def download_image(url, file_path, uid):
             fail_flg_1 = url.endswith(("jpg", "jpeg")) and not downloaded.content.endswith(b"\xff\xd9")
             fail_flg_2 = url.endswith("png") and not downloaded.content.endswith(b"\xaeB`\x82")
             fail_flg_3 = url.endswith("mov") and False # to do: Verify mov file status
-            if ( fail_flg_1  or fail_flg_2 or fail_flg_3):
+            fail_flg_4 = url.endswith(",video") and False
+            if ( fail_flg_1  or fail_flg_2 or fail_flg_3 or fail_flg_4):
 #                 logger.debug("[DEBUG] failed " + url + "  " + str(try_count))
                 print("[DEBUG] Download failed ")
             else:
@@ -110,18 +115,29 @@ def download_image(url, file_path, uid):
 
 def weibo_image_download(url, save_folder="images"):
     print("Downloading URL: ", url)
+
     page_id = extract_pageid_from_link(url)
     response = weibo_page(page_id)
-    pic_ids = get_content_list(response)
 
-    pic_urls = get_pics_url(response, pic_ids)
-    
     user_info = get_user_info(response)
     user_folder = user_info['screen_name'] + "_" + user_info['uid']
     save_folder = save_folder + "/" + user_folder
-
     if not os.path.isdir(save_folder):
         os.makedirs(save_folder)
+
+    pic_ids = get_content_list(response)
+
+    if not pic_ids and 'page_info' in response:
+        print("Download video...")
+        video_url = get_video_url(response)
+        save_name = save_folder + "/" + page_id + ".mp4"
+        download_image(video_url, save_name, user_info['uid'])
+        return
+    if not pic_ids and not 'page_info' in response:
+        return
+
+    pic_urls = get_pics_url(response, pic_ids)
+
     for pic_url, pic_id in zip(pic_urls, pic_ids):
         media_type = get_media_type(response, pic_id)
         if (media_type == "pic"):
