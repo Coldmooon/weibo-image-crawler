@@ -27,17 +27,35 @@ def extract_pageid_from_link(url):
     return None
 
 def weibo_page(page_id):
+    
     request_link = "https://weibo.com/ajax/statuses/show?id=" + page_id
     r = requests.get(request_link, headers=headers, verify=False)
-
     return r.json()
 
-def get_pics_url(response):
-    # Note: 如果是转发微博，那么会有多个 pic_ids，其中当前微博的 pic_ids 是空，而被转发微博的 pic_ids 正常。
-    pic_urls = [response['pic_infos'][x]['largest']['url']  for x in pic_ids]
+def get_content_list(response):
+    
     pic_ids = response['pic_ids']
+    return pic_ids
 
-    return pic_urls, pic_ids
+def get_media_type(response, pic_id):
+    # type:
+    #       pic: photo
+    #       livephoto: live photo
+
+    media_type = response['pic_infos'][pic_id]['type']
+    return media_type
+
+def get_pics_url(response, pic_ids):
+    # Note: 如果是转发微博，那么会有多个 pic_ids，其中当前微博的 pic_ids 是空，而被转发微博的 pic_ids 正常。
+    if pic_ids is None:
+        pic_ids = response['pic_ids']
+    pic_urls = [response['pic_infos'][x]['largest']['url']  for x in pic_ids]
+    return pic_urls
+
+def get_livephoto_url(response, pic_id):
+    
+    livephoto_url = response['pic_infos'][pic_id]['video']
+    return livephoto_url
 
 def get_user_info(response):
     user = {}
@@ -64,9 +82,10 @@ def download_image(url, file_path, uid):
             try_count += 1
             fail_flg_1 = url.endswith(("jpg", "jpeg")) and not downloaded.content.endswith(b"\xff\xd9")
             fail_flg_2 = url.endswith("png") and not downloaded.content.endswith(b"\xaeB`\x82")
-            if ( fail_flg_1  or fail_flg_2):
+            fail_flg_3 = url.endswith("mov") and False # to do: Verify mov file status
+            if ( fail_flg_1  or fail_flg_2 or fail_flg_3):
 #                 logger.debug("[DEBUG] failed " + url + "  " + str(try_count))
-                print("[DEBUG] failed ")
+                print("[DEBUG] Download failed ")
             else:
                 success = True
 #                 logger.debug("[DEBUG] success " + url + "  " + str(try_count))
@@ -80,7 +99,7 @@ def download_image(url, file_path, uid):
                     print("saved")
         else:
 #             logger.debug("[DEBUG] failed " + url + " TOTALLY")
-            print("[DEBUG] failed " )
+            print("[DEBUG] Save failed " )
     except Exception as e:
         error_file = "not_downloaded.txt"
         with open(error_file, "ab") as f:
@@ -93,7 +112,9 @@ def weibo_image_download(url, save_folder="images"):
     print("Downloading URL: ", url)
     page_id = extract_pageid_from_link(url)
     response = weibo_page(page_id)
-    pic_urls, pic_ids = get_pics_url(response)
+    pic_ids = get_content_list(response)
+
+    pic_urls = get_pics_url(response, pic_ids)
     
     user_info = get_user_info(response)
     user_folder = user_info['screen_name'] + "_" + user_info['uid']
@@ -102,5 +123,14 @@ def weibo_image_download(url, save_folder="images"):
     if not os.path.isdir(save_folder):
         os.makedirs(save_folder)
     for pic_url, pic_id in zip(pic_urls, pic_ids):
-        img_save_name = save_folder + "/" + pic_id + ".jpg"
-        download_image(pic_url, img_save_name, user_info['uid'])
+        media_type = get_media_type(response, pic_id)
+        if (media_type == "pic"):
+            save_name = save_folder + "/" + pic_id + ".jpg"
+            download_image(pic_url, save_name, user_info['uid'])
+        elif (media_type == "livephoto"):
+            print("Downloading Livephoto...")
+            save_name = save_folder + "/" + pic_id + ".mov"
+            media_url = get_livephoto_url(response, pic_id)
+            download_image(media_url, save_name, user_info['uid'])
+        else:
+            print("Unknown Media Type: ", media_type)
