@@ -8,7 +8,7 @@ headers = {'User_Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
  'Cookie': ''}
 
     
-def extract_pageid_from_link(url):
+def get_pageID(url):
     # 匹配UID和页面ID的正则表达式
     pattern = re.compile(r'https?://weibo.com/(\d+)/?(\w+)?')
     
@@ -116,7 +116,7 @@ def download_image(url, file_path, uid):
 def weibo_image_download(url, save_folder="images"):
     print("Downloading URL: ", url)
 
-    page_id = extract_pageid_from_link(url)
+    page_id = get_pageID(url)
     response = weibo_page(page_id)
 
     user_info = get_user_info(response)
