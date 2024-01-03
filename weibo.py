@@ -8,7 +8,7 @@ headers = {'User_Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
  'Cookie': ''}
 
     
-def get_pageID(url):
+def get_page_id(url):
     # 匹配UID和页面ID的正则表达式
     pattern = re.compile(r'https?://weibo.com/(\d+)/?(\w+)?')
     
@@ -26,7 +26,7 @@ def get_pageID(url):
     # 如果链接格式不正确，则返回None
     return None
 
-def weibo_page(page_id):
+def weibo_pagesource(page_id):
     
     request_link = "https://weibo.com/ajax/statuses/show?id=" + page_id
     r = requests.get(request_link, headers=headers, verify=False)
@@ -37,7 +37,20 @@ def get_content_list(response):
     pic_ids = response['pic_ids']
     return pic_ids
 
-def get_media_type(response, pic_id):
+def get_page_type(response):
+    page_type = ''
+    if 'mix_media_info' in response.keys():
+        page_type = 'multimedia'
+    elif 'page_info' in response.keys():
+        page_type = 'video'
+    elif 'pic_infos' in response.keys():
+        page_type = 'images'
+    else:
+        page_type = 'Unknown'
+
+    return page_type
+
+def get_pic_type(response, pic_id):
     # type:
     #       pic: photo
     #       livephoto: live photo
@@ -45,21 +58,49 @@ def get_media_type(response, pic_id):
     media_type = response['pic_infos'][pic_id]['type']
     return media_type
 
-def get_pics_url(response, pic_ids):
-    # Note: 如果是转发微博，那么会有多个 pic_ids，其中当前微博的 pic_ids 是空，而被转发微博的 pic_ids 正常。
-    if pic_ids is None:
+
+def get_media_urls(response, page_type):
+
+    media_urls = []
+
+    if page_type == 'multimedia': 
+        num_medias = len(response['mix_media_info']['items'])
+        for i in range(num_medias):
+            media = response['mix_media_info']['items'][i]
+            if 'pic' == media['type']:
+                media_urls += [{'url': media['data']['largest']['url'],
+                                'media_id': media['data']['pic_id'],
+                                'media_type': 'pic'}]
+            elif 'video' == media['type']:
+                media_urls += [{'url': media['data']['media_info']['mp4_720p_mp4'], 
+                                'media_id': media['data']['media_info']['media_id'],
+                                'media_type': 'video'}]
+            else:
+                print('unknown media type in multi-media page...')
+         
+    elif page_type == 'video':
+        media_urls += [{'url': response['page_info']['media_info']['mp4_720p_mp4'],
+                        'media_id':  response['page_info']['media_info']['media_id'],
+                        'media_type': 'video'}]
+
+    elif page_type == 'images':
         pic_ids = response['pic_ids']
-    pic_urls = [response['pic_infos'][x]['largest']['url']  for x in pic_ids]
-    return pic_urls
+        # Note: 如果是转发微博，那么会有多个 pic_ids，其中当前微博的 pic_ids 是空，而被转发微博的 pic_ids 正常。
+        for pic_id in pic_ids: 
+            pic_type = get_pic_type(response, pic_id)
+            if pic_type == "pic":
+                media_urls += [{'url': response['pic_infos'][pic_id]['largest']['url'],
+                                'media_id': pic_id,
+                                'media_type': 'pic'}]
+            elif (pic_type == "livephoto"):
+                media_urls += [{'url': response['pic_infos'][pic_id]['video'],
+                                'media_id': pic_id,
+                                'media_type': 'livephoto'}]
+    else:
+        print("No urls catched for new type of weibo_page.")
 
-def get_livephoto_url(response, pic_id):
-    
-    livephoto_url = response['pic_infos'][pic_id]['video']
-    return livephoto_url
+    return media_urls
 
-def get_video_url(response):
-
-    return response['page_info']['media_info']['mp4_720p_mp4']
 
 def get_user_info(response):
     user = {}
@@ -68,7 +109,7 @@ def get_user_info(response):
     
     return user
 
-def download_image(url, file_path, uid):
+def download_media(url, file_path, uid):
     try:
         file_exist = os.path.isfile(file_path)
         need_download = (not file_exist)
@@ -116,8 +157,8 @@ def download_image(url, file_path, uid):
 def weibo_image_download(url, save_folder="images"):
     print("Downloading URL: ", url)
 
-    page_id = get_pageID(url)
-    response = weibo_page(page_id)
+    page_id = get_page_id(url)
+    response = weibo_pagesource(page_id)
 
     user_info = get_user_info(response)
     user_folder = user_info['screen_name'] + "_" + user_info['uid']
@@ -125,28 +166,23 @@ def weibo_image_download(url, save_folder="images"):
     if not os.path.isdir(save_folder):
         os.makedirs(save_folder)
 
-    pic_ids = get_content_list(response)
+    page_type = get_page_type(response)
+    media_urls = get_media_urls(response, page_type)
 
-    if not pic_ids and 'page_info' in response:
-        print("Download video...")
-        video_url = get_video_url(response)
-        save_name = save_folder + "/" + page_id + ".mp4"
-        download_image(video_url, save_name, user_info['uid'])
-        return
-    if not pic_ids and not 'page_info' in response:
-        return
+    for i in range(len(media_urls)):
+        media = media_urls[i]
 
-    pic_urls = get_pics_url(response, pic_ids)
+        media_url = media['url']
+        media_type = media['media_type']
+        media_id = media['media_id']
 
-    for pic_url, pic_id in zip(pic_urls, pic_ids):
-        media_type = get_media_type(response, pic_id)
-        if (media_type == "pic"):
-            save_name = save_folder + "/" + pic_id + ".jpg"
-            download_image(pic_url, save_name, user_info['uid'])
-        elif (media_type == "livephoto"):
-            print("Downloading Livephoto...")
-            save_name = save_folder + "/" + pic_id + ".mov"
-            media_url = get_livephoto_url(response, pic_id)
-            download_image(media_url, save_name, user_info['uid'])
-        else:
-            print("Unknown Media Type: ", media_type)
+        if "pic" == media_type:
+            save_name = save_folder + "/" + media_id + ".jpg"
+        elif "video" == media_type:
+            save_name = save_folder + "/" + media_id + ".mp4"
+        elif "livephoto" == media_type:
+            save_name = save_folder + "/" + media_id + ".mov"
+
+        download_media(media_url, save_name, user_info['uid'])
+
+    print("Finished downloading user: ", user_info['screen_name'])
