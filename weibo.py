@@ -32,11 +32,6 @@ def weibo_pagesource(page_id):
     r = requests.get(request_link, headers=headers, verify=False)
     return r.json()
 
-def get_content_list(response):
-    
-    pic_ids = response['pic_ids']
-    return pic_ids
-
 def get_page_type(response):
     page_type = ''
     if 'mix_media_info' in response.keys():
