@@ -67,14 +67,20 @@ def get_media_urls(response, page_type):
                                 'media_id': media['data']['pic_id'],
                                 'media_type': 'pic'}]
             elif 'video' == media['type']:
-                media_urls += [{'url': media['data']['media_info']['mp4_720p_mp4'], 
+                video_url = media['data']['media_info']['mp4_720p_mp4'] or \
+                            media['data']['media_info']['stream_url_hd']
+
+                media_urls += [{'url': video_url, 
                                 'media_id': media['data']['media_info']['media_id'],
                                 'media_type': 'video'}]
             else:
                 print('unknown media type in multi-media page...')
          
     elif page_type == 'video':
-        media_urls += [{'url': response['page_info']['media_info']['mp4_720p_mp4'],
+        video_url = response['page_info']['media_info']['mp4_720p_mp4'] or \
+                    response['page_info']['media_info']['stream_url_hd']
+
+        media_urls += [{'url': video_url,
                         'media_id':  response['page_info']['media_info']['media_id'],
                         'media_type': 'video'}]
 
