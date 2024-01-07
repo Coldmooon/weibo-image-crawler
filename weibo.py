@@ -4,6 +4,7 @@ import requests
 from requests.adapters import HTTPAdapter
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 headers = {'User_Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36',
  'Cookie': ''}
@@ -164,27 +165,33 @@ def weibo_image_download(url, save_folder="images"):
 
     user_info = get_user_info(response)
     user_folder = user_info['screen_name'] + "_" + user_info['uid']
-    save_folder = save_folder + "/" + user_folder
+    save_folder = os.path.join(save_folder, user_folder)
     if not os.path.isdir(save_folder):
         os.makedirs(save_folder)
 
     page_type = get_page_type(response)
     media_urls = get_media_urls(response, page_type)
 
-    for i in range(len(media_urls)):
-        media = media_urls[i]
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = []
+        for media in media_urls:
+            media_url = media['url']
+            media_type = media['media_type']
+            media_id = media['media_id']
+            if 'pic' == media_type:
+                save_name = os.path.join(save_folder, media_id + '.jpg')
+            elif 'video' == media_type:
+                save_name = os.path.join(save_folder, media_id + '.mp4')
+            elif 'livephoto' == media_type:
+                save_name = os.path.join(save_folder, media_id + '.mov')
 
-        media_url = media['url']
-        media_type = media['media_type']
-        media_id = media['media_id']
+            future = executor.submit(download_media, media_url, save_name, user_info['uid'])
+            futures.append(future)
 
-        if "pic" == media_type:
-            save_name = save_folder + "/" + media_id + ".jpg"
-        elif "video" == media_type:
-            save_name = save_folder + "/" + media_id + ".mp4"
-        elif "livephoto" == media_type:
-            save_name = save_folder + "/" + media_id + ".mov"
-
-        download_media(media_url, save_name, user_info['uid'])
+        for future in as_completed(futures):
+            try:
+                future.result()
+            except Exception as exc:
+                print('There was an exception: %s' % exc)
 
     print("Finished downloading user: ", user_info['screen_name'])
