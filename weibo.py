@@ -129,11 +129,14 @@ def get_media_urls(response, page_type):
                 print('unknown media type in multi-media page...')
          
     elif page_type == 'video':
-        video_url = response['page_info']['media_info']['mp4_720p_mp4'] or \
-                    response['page_info']['media_info']['stream_url_hd']
+        video_info = response['page_info']['media_info']
 
+        video_url = video_info['playback_list'][0]['play_info']['url'] or \
+               video_info['mp4_720p_mp4'] or \
+               video_info['stream_url_hd']
+        
         media_urls += [{'url': video_url,
-                        'media_id':  response['page_info']['media_info']['media_id'],
+                        'media_id':  video_info['media_id'],
                         'media_type': 'video'}]
 
     elif page_type == 'images':
