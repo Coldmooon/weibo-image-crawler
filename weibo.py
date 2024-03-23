@@ -8,19 +8,16 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 headers = {
     'User_Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-    'Cookie': 'XSRF-TOKEN=df6_295NgzFvJXS5Ebir3Lsy; SUB=_2AkMSoQfrf8NxqwFRmfsVyG3mbYp3wgjEieKk_fYwJRMxHRl-yT9vqlIAtRB6OSEpBFcGiARBOAnwKhC5ZrKPs-0Tb0Qo; SUBP=0033WrSXqPxfM72-Ws9jqgMF55529P9D9WWFg0fG6cq3oE2bqhsoAldV; WBPSESS=gJ7ElPMf_3q2cdj5JUfmvGVqkHB92RE2_AwewsrjYWIBFCA1ZPKYgsEdwAzm6brHYlW5B6maWDy-hBEgLCyxVoJJry48tUmcvk0HOSyHP_39vQbgHUQVhjsEpRu0qJLNziegtrfv2J4r-EEdKdga-YSfVBhzDTG8azkZAaaS7Pw=',
-    'Cache-Control': 'max-age=0',
 }
 
-short_link_headers = {
-    'User_Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-}
-
-
+cookies = [
+    'XSRF-TOKEN=df6_295NgzFvJXS5Ebir3Lsy; SUB=_2AkMSoQfrf8NxqwFRmfsVyG3mbYp3wgjEieKk_fYwJRMxHRl-yT9vqlIAtRB6OSEpBFcGiARBOAnwKhC5ZrKPs-0Tb0Qo; SUBP=0033WrSXqPxfM72-Ws9jqgMF55529P9D9WWFg0fG6cq3oE2bqhsoAldV; WBPSESS=gJ7ElPMf_3q2cdj5JUfmvGVqkHB92RE2_AwewsrjYWIBFCA1ZPKYgsEdwAzm6brHYlW5B6maWDy-hBEgLCyxVoJJry48tUmcvk0HOSyHP_39vQbgHUQVhjsEpRu0qJLNziegtrfv2J4r-EEdKdga-YSfVBhzDTG8azkZAaaS7Pw=',
+    'XSRF-TOKEN=df6_295NgzFvJXS5Ebir3Lsy; _s_tentry=-; Apache=6386009078674.588.1711119828939; SINAGLOBAL=6386009078674.588.1711119828939; ULV=1711119828990:1:1:1:6386009078674.588.1711119828939:; ALF=1713761012; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WWuyTE2R_nVVR8Gh5or-UwK5JpX5KzhUgL.FoeNeKM4eh2pehe2dJLoIEBLxK-LBozLB-BLxKBLB.2L1K2LxKqL1KMLB.2LxKqL1-eL1hnt; SUB=_2A25I-vXPDeRhGeVJ6lUY8C_Nyz-IHXVodncHrDV8PUJbn9AGLRfgkW1NT-K3eh5dPZM9ZF7BK1xxHGc5IPJnHuMf; PC_TOKEN=f7723f2711; WBPSESS=HRGrvUX5o6Tu2aaaIhJAc5AQgyd_ChArhzxpTq2G3firFqV8woflsEY-USPTjze-BoOqGxKWzJs_RNqUxg8KLzjyZVqLaIkbmQaoOqD2zfduwsrQg_Im_Rf7wmjlKZHFecpsx1yYhPLc5CTwHO7KuQ==',
+]
 
 def extract_redirected_link(short_link):
     try:
-        response = requests.get(short_link, headers=short_link_headers, allow_redirects=False)
+        response = requests.get(short_link, headers=headers, allow_redirects=False)
         if response.status_code == 200:
             for key, value in response.__dict__.items():
                 print(f"{key}: {value}")
@@ -61,20 +58,30 @@ def get_page_id(url):
     # 如果链接格式不正确，则返回None
     return None
 
-def weibo_pagesource(page_id):
-    request_link = "https://weibo.com/ajax/statuses/show?id=" + page_id
+def weibo_pagesource(page_id, cookies):
 
-    response = requests.get(request_link, headers=headers)
-    if response.ok:
-        try:
-            data = response.json()
-            return data
-        except ValueError:
-            print("Failed to decode JSON. Response was:", response.text)
-    else:
-        print("Request failed with status code:", response.status_code)
-        return ""
+    headers_copy = headers.copy()
+    
+    for cookie in cookies:
+        headers_copy['Cookie'] = cookie
+        request_link = "https://weibo.com/ajax/statuses/show?id=" + page_id
 
+        response = requests.get(request_link, headers=headers_copy)
+        if response.ok:
+            try:
+                data = response.json()
+                return data
+            except ValueError:
+                print("Failed to decode JSON. Response was:", response.text)
+        elif response.status_code == 400:
+            print("Request failed with status code 400. Trying next cookie.")
+            continue
+        else:
+            print("Request failed with status code:", response.status_code)
+            return ""
+
+    print("All cookies failed. Unable to retrieve data.")
+    return ""
 
 def get_page_type(response):
     page_type = ''
