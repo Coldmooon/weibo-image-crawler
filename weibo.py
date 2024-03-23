@@ -58,7 +58,7 @@ def get_page_id(url):
     # 如果链接格式不正确，则返回None
     return None
 
-def weibo_pagesource(page_id, cookies):
+def weibo_pagesource(page_id):
 
     headers_copy = headers.copy()
     
