@@ -11,9 +11,40 @@ headers = {
     'Cookie': 'XSRF-TOKEN=df6_295NgzFvJXS5Ebir3Lsy; SUB=_2AkMSoQfrf8NxqwFRmfsVyG3mbYp3wgjEieKk_fYwJRMxHRl-yT9vqlIAtRB6OSEpBFcGiARBOAnwKhC5ZrKPs-0Tb0Qo; SUBP=0033WrSXqPxfM72-Ws9jqgMF55529P9D9WWFg0fG6cq3oE2bqhsoAldV; WBPSESS=gJ7ElPMf_3q2cdj5JUfmvGVqkHB92RE2_AwewsrjYWIBFCA1ZPKYgsEdwAzm6brHYlW5B6maWDy-hBEgLCyxVoJJry48tUmcvk0HOSyHP_39vQbgHUQVhjsEpRu0qJLNziegtrfv2J4r-EEdKdga-YSfVBhzDTG8azkZAaaS7Pw=',
     'Cache-Control': 'max-age=0',
 }
+
+short_link_headers = {
+    'User_Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+}
+
+
+
+def extract_redirected_link(short_link):
+    try:
+        response = requests.get(short_link, headers=short_link_headers, allow_redirects=False)
+        if response.status_code == 200:
+            for key, value in response.__dict__.items():
+                print(f"{key}: {value}")
+            return None
+        elif response.status_code == 302:
+            # Extract the redirection URL from the Location header
+            if 'Location' in response.headers:
+                final_url = response.headers['Location']
+                return final_url
+            else:
+                print("Error: Redirection URL not found in response headers.")
+                return None
+        else:
+            print(f"Error: Unable to access {short_link}. Status code: {response.status_code}")
+            return None
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
     
 def get_page_id(url):
     # 匹配UID和页面ID的正则表达式
+    if "t.cn" in url:
+        url = extract_redirected_link(url)
+
     pattern = re.compile(r'https?://weibo.com/(\d+)/?(\w+)?')
     
     # 尝试匹配链接中的UID和页面ID
