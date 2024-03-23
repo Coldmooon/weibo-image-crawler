@@ -80,10 +80,11 @@ def get_page_type(response):
     page_type = ''
     if 'mix_media_info' in response.keys():
         page_type = 'multimedia'
-    elif 'page_info' in response.keys():
-        page_type = 'video'
-    elif 'pic_infos' in response.keys():
+    elif 'pic_infos' in response.keys() and 'pic_ids' in response.keys() and 'pic_num' in response.keys():
         page_type = 'images'
+    # Note: Some picture weibo also has the 'page_info' field, e.g., https://weibo.com/2687932353/O594VFGac
+    elif 'page_info' in response.keys() and 'media_info' in response['page_info'].keys():
+        page_type = 'video'
     else:
         page_type = 'Unknown'
 
