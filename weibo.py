@@ -6,9 +6,11 @@ import os
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-headers = {'User_Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36',
- 'Cookie': ''}
-
+headers = {
+    'User_Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Cookie': 'XSRF-TOKEN=df6_295NgzFvJXS5Ebir3Lsy; SUB=_2AkMSoQfrf8NxqwFRmfsVyG3mbYp3wgjEieKk_fYwJRMxHRl-yT9vqlIAtRB6OSEpBFcGiARBOAnwKhC5ZrKPs-0Tb0Qo; SUBP=0033WrSXqPxfM72-Ws9jqgMF55529P9D9WWFg0fG6cq3oE2bqhsoAldV; WBPSESS=gJ7ElPMf_3q2cdj5JUfmvGVqkHB92RE2_AwewsrjYWIBFCA1ZPKYgsEdwAzm6brHYlW5B6maWDy-hBEgLCyxVoJJry48tUmcvk0HOSyHP_39vQbgHUQVhjsEpRu0qJLNziegtrfv2J4r-EEdKdga-YSfVBhzDTG8azkZAaaS7Pw=',
+    'Cache-Control': 'max-age=0',
+}
     
 def get_page_id(url):
     # 匹配UID和页面ID的正则表达式
@@ -29,10 +31,19 @@ def get_page_id(url):
     return None
 
 def weibo_pagesource(page_id):
-    
     request_link = "https://weibo.com/ajax/statuses/show?id=" + page_id
-    r = requests.get(request_link, headers=headers, verify=False)
-    return r.json()
+
+    response = requests.get(request_link, headers=headers)
+    if response.ok:
+        try:
+            data = response.json()
+            return data
+        except ValueError:
+            print("Failed to decode JSON. Response was:", response.text)
+    else:
+        print("Request failed with status code:", response.status_code)
+        return ""
+
 
 def get_page_type(response):
     page_type = ''
@@ -113,6 +124,12 @@ def get_user_info(response):
     return user
 
 def download_media(url, file_path, uid):
+    downloader_headers = {
+        'User_Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Referer': 'https://weibo.com/',
+        'Sec_Fetch_Site': 'cross-site',
+        'Cookie': 'XSRF-TOKEN=df6_295NgzFvJXS5Ebir3Lsy; SUB=_2AkMSoQfrf8NxqwFRmfsVyG3mbYp3wgjEieKk_fYwJRMxHRl-yT9vqlIAtRB6OSEpBFcGiARBOAnwKhC5ZrKPs-0Tb0Qo; SUBP=0033WrSXqPxfM72-Ws9jqgMF55529P9D9WWFg0fG6cq3oE2bqhsoAldV; WBPSESS=gJ7ElPMf_3q2cdj5JUfmvGVqkHB92RE2_AwewsrjYWIBFCA1ZPKYgsEdwAzm6brHYlW5B6maWDy-hBEgLCyxVoJJry48tUmcvk0HOSyHP_39vQbgHUQVhjsEpRu0qJLNziegtrfv2J4r-EEdKdga-YSfVBhzDTG8azkZAaaS7Pw=; _s_tentry=-; Apache=6386009078674.588.1711119828939; SINAGLOBAL=6386009078674.588.1711119828939; ULV=1711119828990:1:1:1:6386009078674.588.1711119828939:',
+    }
     try:
         file_exist = os.path.isfile(file_path)
         need_download = (not file_exist)
@@ -125,7 +142,8 @@ def download_media(url, file_path, uid):
         MAX_TRY_COUNT = 3
         while try_count < MAX_TRY_COUNT:
             downloaded = s.get(
-                url, headers=headers, timeout=(5, 10), verify=False
+                #url, headers=downloader_headers, timeout=(5, 10), verify=False
+                url, headers=downloader_headers, timeout=(5, 10)
             )
             try_count += 1
             fail_flg_1 = url.endswith(("jpg", "jpeg")) and not downloaded.content.endswith(b"\xff\xd9")
