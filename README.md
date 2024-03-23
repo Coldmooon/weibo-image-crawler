@@ -4,7 +4,7 @@
 无需登录账号。
 
 # Updates
-**3/23/2024**: 增加了 2K 60 帧高清视频下载
+**3/23/2024**: 增加了 2K 60 帧高清视频下载(如果下载不到 2K 视频，则自动选择最高质量视频)
 
 **3/23/2024**: 增加了对微博新接口的支持
 
@@ -23,7 +23,7 @@
 2.
 下载一条微博的所有高清大图/livephoto动图/高清视频:
 ```
-python main.py -l https://weibo.com/5573443261/MFWrOyfe5
+python main.py -l https://weibo.com/6821250222/O63ALBdPm
 或者
 python main.py -l http://t.cn/A6YeHbCw
 或者
